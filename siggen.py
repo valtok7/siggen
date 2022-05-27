@@ -20,6 +20,25 @@ def gen_cw(ampl, freq, fs, length, log=False):
         plt.show()
     return t, i, q
 
+#%% Amplitude Modulation
+def mod_ampl(i, q, mod_sig, log=False):
+    out_i = np.multiply(i, mod_sig)
+    out_q = np.multiply(q, mod_sig)
+    if log:
+        plt.plot(t, out_i, label="out_i")
+        plt.plot(t, out_q, label="out_q")
+        plt.plot(t, mod_sig, label="mod_sig")
+        plt.title(f"mod_ampl")
+        plt.xlabel("sample")
+        plt.ylabel("amplitude")
+        plt.legend()
+        plt.show()
+    return out_i, out_q
+
+#%% Preare Pulse Signal
+def prepare_pulse_sig(on_start, on_length, log=False):
+    
+
 #%% Output CSV
 def output_csv(filename, i, q):
     np.savetxt(filename, np.stack((i, q)).T, delimiter=",")
