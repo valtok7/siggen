@@ -6,59 +6,69 @@ import struct
 
 #%% Generate CW
 def gen_cw(ampl, freq, fs, length, log=False):
-    n = np.arange(1)
-    t = np.linspace(0, length, fs)
-    i = ampl * np.cos(2 * np.pi * freq * t)
-    q = ampl * np.sin(2 * np.pi * freq * t)
+    n = np.arange(length)
+    iq = [ampl * np.cos(2 * np.pi * freq * n / fs), ampl * np.sin(2 * np.pi * freq * n / fs)]
     if log:
-        plt.plot(t, i, label="i")
-        plt.plot(t, q, label="q")
+        plt.plot(n, iq[0], label="i")
+        plt.plot(n, iq[1], label="q")
         plt.title(f"gen_cw ampl={ampl},freq={freq},fs={fs}")
-        plt.xlabel("time")
+        plt.xlabel("sample")
         plt.ylabel("amplitude")
         plt.legend()
         plt.show()
-    return t, i, q
+    return iq
 
 #%% Amplitude Modulation
-def mod_ampl(i, q, mod_sig, log=False):
-    out_i = np.multiply(i, mod_sig)
-    out_q = np.multiply(q, mod_sig)
+def mod_ampl(iq, mod_sig, log=False):
+    iq_out = [np.multiply(iq[0], mod_sig), np.multiply(iq[1], mod_sig)]
     if log:
-        plt.plot(t, out_i, label="out_i")
-        plt.plot(t, out_q, label="out_q")
-        plt.plot(t, mod_sig, label="mod_sig")
+        n  = np.arange(len(iq_out[0]))
+        plt.plot(n, iq_out[0], label="i")
+        plt.plot(n, iq_out[1], label="q")
+        plt.plot(n, mod_sig, label="mod_sig")
         plt.title(f"mod_ampl")
         plt.xlabel("sample")
         plt.ylabel("amplitude")
         plt.legend()
         plt.show()
-    return out_i, out_q
+    return iq_out
 
-#%% Preare Pulse Signal
-def prepare_pulse_sig(on_start, on_length, log=False):
-    
+#%% Generate Pulse
+def gen_pulse(amplitude, on_start, on_length, total_length, log=False):
+    pulse = np.zeros(total_length)
+    on_range = range(on_start, on_start + on_length)
+    for index in on_range:
+        pulse[index] = amplitude
+    if log:
+        n = range(len(pulse))
+        plt.plot(n, pulse, label="pulse")
+        plt.title(f"gen_pulse")
+        plt.xlabel("sample")
+        plt.ylabel("amplitude")
+        plt.legend()
+        plt.show()        
+    return pulse
 
 #%% Output CSV
-def output_csv(filename, i, q):
-    np.savetxt(filename, np.stack((i, q)).T, delimiter=",")
+def output_csv(filename, iq):
+    np.savetxt(filename, np.stack((iq[0], iq[1])).T, delimiter=",")
     return
 
 #%% Output BIN
-def output_bin(filename, i, q):
+def output_bin(filename, iq):
     with open(filename, "wb") as fp:
-        rng = range(i.shape[0])
-        data = np.insert(q, rng, i)
+        rng = range(iq[0].shape[0])
+        data = np.insert(iq[1], rng, iq[0])
         fmt = "f" * len(data)  # output as float
         bin = struct.pack(fmt, *data)   # * means unpack
         fp.write(bin)
     return
 
 #%% Test
-t, i, q = gen_cw(1, 100, 1000, 20)
-t, i, q = gen_cw(2, 200, 1000, 20)
-t, i, q = gen_cw(3, 0, 1000, 20, True)
-output_csv("cw.csv", i, q)
-output_bin("cw.bin", i, q)
+cw = gen_cw(1, 100, 1000, 20, True)
+pulse = gen_pulse(1, 10, 5, 20, True)
+pulsed_cw = mod_ampl(cw, pulse, True)
+#output_csv("cw.csv", cw)
+#output_bin("cw.bin", cw)
 
 # %%
