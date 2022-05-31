@@ -4,6 +4,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal as npsig
 import struct
+import math
+
+#%% Power Analysis
+def anal_power(iq, length, start=0, log=False):
+    signal = iq[start:start+length]
+    sqr = np.multiply(signal.real, signal.real) + np.multiply(signal.imag, signal.imag)
+    power = np.average(sqr)
+    power_db = 10 * math.log10(power)
+    if log:
+        print(f"power = {power}")
+        print(f"power_db = {power_db}")
+    return power, power_db
 
 #%% Generate CW
 def gen_cw(ampl, freq, fs, length, init_phase=0, log=False):
@@ -19,6 +31,21 @@ def gen_cw(ampl, freq, fs, length, init_phase=0, log=False):
         plt.legend()
         plt.show()
     return iq
+
+#%% Generate Noise
+def gen_noise(ampl, fs, length, log=False):
+    iq = (np.random.randn(length) + 1j * np.random.randn(length)) / math.sqrt(2.0)
+    if log:
+        n = np.arange(length)
+        plt.plot(n, iq.real, label="i")
+        plt.plot(n, iq.imag, label="q")
+        plt.title(f"gen_noise ampl={ampl},fs={fs}")
+        plt.xlabel("sample")
+        plt.ylabel("amplitude")
+        plt.legend()
+        plt.show()
+    return iq
+
 
 #%% Modulation
 def modulation(iq, mod_sig, log=False):
@@ -69,12 +96,28 @@ def output_bin(filename, iq):
 
 #%% Spectrum Analysis
 def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
+    """
+    スペクトラム解析
+    
+    Parameters
+    ----------
+    window : str
+        窓関数
+        rect, blackmanharris, flattop, etc...
+        see https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows
+
+    """
     # Windowing
     signal = iq[start:start+length]
     if window != "rect":
-        signal *= npsig.windows.get_window(window, length, False)
+        window_coef = npsig.windows.get_window(window, length, False)
+    else:
+        window_coef = np.ones(length)
+    window_gain = np.average(window_coef)
+    signal_windowed = signal * window_coef / window_gain
 
-    spect = np.fft.fft(signal, n=length)
+    # FFT
+    spect = np.fft.fft(signal_windowed, n=length)
     spect_shifted = np.fft.fftshift(spect)
     spect_abs = np.abs(spect_shifted) / length
     spect_phase = np.angle(spect_shifted)
@@ -89,6 +132,7 @@ def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
         plt.ylabel("amplitude(linear)")
         plt.legend()
         plt.show()
+        print(f"max={np.max(spect_abs)}")
 
         plt.figure()
         plt.plot(spect_freq, spect_abs_db, label="spect_abs_db")
@@ -97,6 +141,7 @@ def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
         plt.ylabel("amplitude(dB)")
         plt.legend()
         plt.show()
+        print(f"max={np.max(spect_abs_db)}")
 
         plt.figure()
         plt.plot(spect_freq, spect_phase, label="spect_phase")
@@ -109,16 +154,21 @@ def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
 
 
 #%% Test
-freq = 100.0
-fs = 1000.0
-length = 2000
+freq = 100
+fs = 1000
+length = 8000
 cw = gen_cw(1, freq, fs, length, log=False)
-pulse = gen_pulse(1, 10, 5, length, log=False)
-pulsed_cw = modulation(cw, pulse, log=False)
-output_csv("cw.csv", cw)
-output_bin("cw.bin", cw)
+#pulse = gen_pulse(1, 10, 5, length, log=False)
+#pulsed_cw = modulation(cw, pulse, log=False)
+noise = gen_noise(1, fs, length, log=True)
+#output_csv("cw.csv", cw)
+#output_bin("cw.bin", cw)
+anal_power(cw, length, log=True)
+anal_spect(cw, 128, fs=fs, window="flattop", log=True)
+anal_power(cw, length, log=True)
+cw += noise
 anal_spect(cw, 128, fs=fs, window="blackmanharris", log=True)
-
+anal_power(noise, length, log=True)
 
 
 # %%
