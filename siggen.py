@@ -1,8 +1,10 @@
 #%% Import module
 #%matplotlib inline   # Uncomment when .ipynb
+from heapq import nsmallest
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal as npsig
+from scipy import signal as spsig
+from scipy import special as spsp
 import struct
 import math
 
@@ -110,7 +112,7 @@ def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
     # Windowing
     signal = iq[start:start+length]
     if window != "rect":
-        window_coef = npsig.windows.get_window(window, length, False)
+        window_coef = spsig.windows.get_window(window, length, False)
     else:
         window_coef = np.ones(length)
     window_gain = np.average(window_coef)
@@ -152,6 +154,38 @@ def anal_spect(iq, length, start=0, fs=1.0, window="rect", log=False):
         plt.show()
     return spect, spect_abs, spect_abs_db, spect_phase, spect_freq
 
+#%% Resampling
+def resample(iq, before_fs, after_fs, src_length, filter_length=9, log=False):
+    #window_coef = spsig.windows.get_window(('kaiser', 6.0), filter_length, False)
+    resample_list = []
+    n = 0.0
+    while (n + filter_length <= src_length):
+        n_int = round(n)
+        iq_input = iq[n_int:n_int+filter_length]
+        n_frac = n - n_int  # 目標インデックスの端数成分 [-1/2fs,+1/2fs)
+        filter_start = -n_frac - int(filter_length / 2)      # フィルタ開始インデックス
+        filter_stop = filter_start + (filter_length - 1)     # フィルタ終端インデックス
+        resample_filter_index = np.linspace(filter_stop, filter_start, filter_length)
+        resample_filter = spsp.sinc(resample_filter_index)
+        #resample_filter *= window_coef
+        tmp = spsig.convolve(iq_input, resample_filter, mode = "valid")
+        resample_list.append(*tmp)
+        n += before_fs/after_fs
+    resample_array = np.array(resample_list)
+    if log:
+        n = np.arange(len(resample_array))
+        plt.plot(n, resample_array.real, label="i")
+        plt.plot(n, resample_array.imag, label="q")
+        plt.title(f"resample before_fs={before_fs},after_fs={after_fs}")
+        plt.xlabel("sample")
+        plt.ylabel("amplitude")
+        plt.legend()
+        plt.show()
+    return resample_array
+
+#%% Interpolation
+def interpole(iq, before_fs, after_fs, src_length, filter_length=9, log=False):
+    return
 
 #%% Test
 freq = 100
@@ -160,15 +194,14 @@ length = 8000
 cw = gen_cw(1, freq, fs, length, log=False)
 #pulse = gen_pulse(1, 10, 5, length, log=False)
 #pulsed_cw = modulation(cw, pulse, log=False)
-noise = gen_noise(1, fs, length, log=True)
+#noise = gen_noise(1, fs, length, log=True)
 #output_csv("cw.csv", cw)
 #output_bin("cw.bin", cw)
 anal_power(cw, length, log=True)
 anal_spect(cw, 128, fs=fs, window="flattop", log=True)
+fs2 = 1100
+cw2 = resample(cw, fs, fs2, 500, log=True)
 anal_power(cw, length, log=True)
-cw += noise
-anal_spect(cw, 128, fs=fs, window="blackmanharris", log=True)
-anal_power(noise, length, log=True)
-
+anal_spect(cw2, 256, fs=fs2, window="blackmanharris", log=True)
 
 # %%
