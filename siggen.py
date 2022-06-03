@@ -1,11 +1,13 @@
 #%% Import module
 #%matplotlib inline   # Uncomment when .ipynb
 import yui
+import numpy as np
 import math
 
 
 #%% Test
-freq = 128
+freq1 = 128
+freq2 = 256
 fs = 1024
 length = 8000
 """
@@ -28,26 +30,10 @@ cw3 = yui.resample(cw, fs, fs3, len(cw), 51, log=True)
 yui.anal_power(cw3, len(cw3), log=True)
 yui.anal_spect(cw3, 256, 100, fs=fs3, window="flattop", log=True)
 """
-sig_real = yui.gen_cos(1, freq, fs, length, "real", log=False)
-spect, spect_abs, spect_abs_db, spect_phase, spect_freq = yui.anal_spect(sig_real, fs, fs=fs, window="rect", log=False)
-print(spect[freq])
-print(math.atan2(spect[freq].imag, spect[freq].real))
-sig_real = yui.gen_cos(1, freq, fs, length, "real", 1, log=False)
-spect, spect_abs, spect_abs_db, spect_phase, spect_freq = yui.anal_spect(sig_real, fs, fs=fs, window="rect", log=False)
-print(spect[freq])
-print(math.atan2(spect[freq].imag, spect[freq].real))
-sig_real = yui.gen_cos(1, freq, fs, length, "real", 2, log=False)
-spect, spect_abs, spect_abs_db, spect_phase, spect_freq = yui.anal_spect(sig_real, fs, fs=fs, window="rect", log=False)
-print(spect[freq])
-print(math.atan2(spect[freq].imag, spect[freq].real))
-sig_real = yui.gen_cos(1, freq, fs, length, "real", 3, log=False)
-spect, spect_abs, spect_abs_db, spect_phase, spect_freq = yui.anal_spect(sig_real, fs, fs=fs, window="rect", log=False)
-print(spect[freq])
-print(math.atan2(spect[freq].imag, spect[freq].real))
-sig_real = yui.gen_cos(1, freq, fs, length, "real", 4, log=False)
-spect, spect_abs, spect_abs_db, spect_phase, spect_freq = yui.anal_spect(sig_real, fs, fs=fs, window="rect", log=False)
-print(spect[freq])
-print(math.atan2(spect[freq].imag, spect[freq].real))
+setting = np.array([[1, 128, 0], [2, 256, 0], [4, 384, 0]])
+cw = yui.gen_multi_cos(fs, length, "real", setting, log=False)
+yui.anal_spect(cw, 1024, 0, fs=fs, window="flattop", log=True)
+
 
 print(1)
 # %%
